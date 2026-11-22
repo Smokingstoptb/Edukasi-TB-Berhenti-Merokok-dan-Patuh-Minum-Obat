@@ -208,5 +208,141 @@ footer{background:#3d1022;color:#fff0f4;padding:32px 0;margin-top:30px}footer p{
 })();
 </script>
 
+<style>
+#peta-monitor{--wine:#741532;--gold:#c69b45;font-family:Arial,sans-serif;color:#30242a;margin:30px 0}
+#peta-monitor .pm-card{background:#fff;border:1px solid #eadde1;border-radius:16px;padding:18px;margin:15px 0;box-shadow:0 4px 14px #74153212}
+#peta-monitor h2,#peta-monitor h3{color:var(--wine)}
+#peta-monitor .pm-btn{background:var(--wine);color:white;border:0;border-radius:10px;padding:12px 17px;font-weight:bold;margin-top:12px}
+#peta-monitor .pm-option{display:block;padding:10px;background:#faf5f6;border-radius:9px;margin:7px 0}
+#peta-monitor input{margin-right:8px}
+#peta-monitor .pm-result{background:#fff5dd;padding:13px;border-radius:10px;margin-top:12px}
+#peta-monitor .pm-progress{height:12px;background:#eee;border-radius:20px;overflow:hidden}
+#peta-monitor .pm-progress span{display:block;height:100%;background:var(--gold);width:0}
+#peta-monitor .pm-day{border-bottom:1px solid #eee;padding:12px 0}
+#peta-monitor .pm-muted{font-size:13px;color:#74666b}
+</style>
+
+<section id="peta-monitor">
+  <div class="pm-card">
+    <h2>🌿 Evaluasi PETA PARU</h2>
+    <p>Kenali pemahamanmu tentang TB, berhenti merokok, dan kepatuhan pengobatan.</p>
+    <p class="pm-muted">Kerjakan pre-test sebelum membaca edukasi dan post-test setelah menyelesaikan edukasi.</p>
+  </div>
+
+  <div class="pm-card">
+    <h3>📝 Pre-test</h3>
+    <div id="pm-pre"></div>
+    <button class="pm-btn" onclick="pmQuiz('pre')">Kirim Pre-test</button>
+    <div id="pm-pre-result" class="pm-result" hidden></div>
+  </div>
+
+  <div class="pm-card">
+    <h3>🎓 Post-test</h3>
+    <div id="pm-post"></div>
+    <button class="pm-btn" onclick="pmQuiz('post')">Kirim Post-test</button>
+    <div id="pm-post-result" class="pm-result" hidden></div>
+  </div>
+
+  <div class="pm-card">
+    <h3>📊 Perbandingan Hasil</h3>
+    <p>Nilai Pre-test: <b id="pm-pre-score">Belum dikerjakan</b></p>
+    <p>Nilai Post-test: <b id="pm-post-score">Belum dikerjakan</b></p>
+    <div class="pm-progress"><span id="pm-bar"></span></div>
+    <p id="pm-improvement" class="pm-muted">Selesaikan kedua evaluasi untuk melihat hasil.</p>
+  </div>
+
+  <div class="pm-card">
+    <h3>🌱 Monitoring Perilaku 7 Hari</h3>
+    <p class="pm-muted">Isi sesuai perilaku yang benar-benar dilakukan hari ini. Data tersimpan di browser perangkat ini.</p>
+    <p>Hari ke-<b id="pm-day-number">1</b> dari 7</p>
+    <div id="pm-monitor-days"></div>
+    <div class="pm-result">
+      Total poin: <b id="pm-points">0</b> / 210
+      <p id="pm-award">Ayo mulai langkah sehatmu!</p>
+    </div>
+  </div>
+
+  <div class="pm-card">
+    <h3>🏆 Kartu Pencapaian PETA PARU</h3>
+    <p>Setiap langkah kecil adalah kemajuan menuju hidup lebih sehat.</p>
+    <p>Skor evaluasi terakhir: <b id="pm-last-score">Belum tersedia</b></p>
+    <p>Total poin perilaku: <b id="pm-total-points">0</b></p>
+    <p class="pm-muted">Poin merupakan alat motivasi, bukan penilaian keberhasilan klinis atau pengganti pemeriksaan tenaga kesehatan.</p>
+  </div>
+</section>
+
+<script>
+(function(){
+const questions=[
+{q:"Apa penyebab utama penyakit tuberkulosis (TB)?",a:["Bakteri Mycobacterium tuberculosis","Virus influenza","Jamur"],c:0},
+{q:"Bagaimana TB paru terutama menular?",a:["Melalui makanan","Melalui udara saat penderita TB menular batuk atau bersin","Melalui sentuhan tangan"],c:1},
+{q:"Apa tindakan yang tepat ketika pasien TB sedang menjalani pengobatan?",a:["Menghentikan obat saat merasa sehat","Minum obat sesuai petunjuk tenaga kesehatan sampai tuntas","Mengurangi dosis sendiri"],c:1},
+{q:"Apa manfaat berhenti merokok bagi pasien TB?",a:["Mendukung kesehatan paru dan pemulihan","Membuat obat tidak diperlukan","Menghilangkan TB seketika"],c:0},
+{q:"Apa yang harus dilakukan jika mengalami efek samping obat TB?",a:["Menghentikan obat sendiri","Menggandakan dosis berikutnya","Menghubungi tenaga kesehatan untuk mendapat arahan"],c:2}
+];
+const key='petaParuMonitoringV1';
+let data={};
+try{data=JSON.parse(localStorage.getItem(key)||'{}')}catch(e){data={}}
+data.days=data.days||{};
+function save(){localStorage.setItem(key,JSON.stringify(data))}
+function renderQuiz(type){
+document.getElementById('pm-'+type).innerHTML=questions.map((q,i)=>
+'<div class="pm-day"><b>'+(i+1)+'. '+q.q+'</b>'+
+q.a.map((a,j)=>'<label class="pm-option"><input type="radio" name="pm-'+type+'-'+i+'" value="'+j+'">'+a+'</label>').join('')+
+'</div>').join('');
+}
+window.pmQuiz=function(type){
+let score=0,answered=0;
+questions.forEach((q,i)=>{
+const chosen=document.querySelector('input[name="pm-'+type+'-'+i+'"]:checked');
+if(chosen){answered++;if(Number(chosen.value)===q.c)score++;}
+});
+if(answered!==questions.length){alert('Silakan jawab semua 5 pertanyaan terlebih dahulu.');return;}
+const result=Math.round(score/questions.length*100);
+data[type]=result;save();update();
+const el=document.getElementById('pm-'+type+'-result');
+el.hidden=false;
+el.innerHTML='<b>Nilai kamu: '+result+'/100</b><br>'+score+' dari 5 jawaban benar. '+(result>=80?'Bagus! Pertahankan pemahamanmu.':'Pelajari kembali materi edukasi dan diskusikan dengan tenaga kesehatan.');
+};
+function renderDays(){
+let html='';
+for(let i=1;i<=7;i++){
+const d=data.days[i]||[];
+html+='<div class="pm-day"><b>Hari ke-'+i+'</b>'+
+['Tidak merokok hari ini','Minum obat sesuai jadwal dan petunjuk','Melakukan perilaku pencegahan penularan TB sesuai edukasi'].map((label,j)=>
+'<label class="pm-option"><input type="checkbox" data-day="'+i+'" value="'+j+'" '+(d.includes(j)?'checked':'')+'>'+label+'</label>').join('')+'</div>';
+}
+document.getElementById('pm-monitor-days').innerHTML=html;
+document.querySelectorAll('#pm-monitor-days input').forEach(el=>{
+el.addEventListener('change',()=>{
+const day=el.dataset.day;
+let arr=data.days[day]||[];
+const val=Number(el.value);
+arr=el.checked?[...new Set([...arr,val])]:arr.filter(x=>x!==val);
+data.days[day]=arr;save();update();
+});
+});
+}
+function update(){
+const pre=data.pre,post=data.post;
+document.getElementById('pm-pre-score').textContent=pre===undefined?'Belum dikerjakan':pre+'/100';
+document.getElementById('pm-post-score').textContent=post===undefined?'Belum dikerjakan':post+'/100';
+document.getElementById('pm-last-score').textContent=post===undefined?'Belum tersedia':post+'/100';
+document.getElementById('pm-bar').style.width=(post===undefined?0:post)+'%';
+document.getElementById('pm-improvement').textContent=pre===undefined||post===undefined?'Selesaikan kedua evaluasi untuk melihat hasil.':'Perubahan nilai: '+(post-pre>0?'+':'')+(post-pre)+' poin.';
+let points=0,completed=0;
+for(let i=1;i<=7;i++){
+let n=(data.days[i]||[]).length;
+points+=n*10;if(n>0)completed++;
+}
+document.getElementById('pm-points').textContent=points;
+document.getElementById('pm-total-points').textContent=points;
+document.getElementById('pm-day-number').textContent=Math.min(completed+1,7);
+document.getElementById('pm-award').textContent=points===0?'Ayo mulai langkah sehatmu!':points>=150?'Hebat! Kamu telah mengumpulkan banyak poin perilaku sehat.':'Terus tingkatkan kebiasaan sehatmu. Setiap tindakan berarti!';
+}
+renderQuiz('pre');renderQuiz('post');renderDays();update();
+})();
+</script>
+
 <footer><div class="wrap"><div class="brand"><span class="mark">🫁</span><div>PETA PARU<small>Edukasi dan pendampingan pasien TB paru</small></div></div><p>Materi ini bersifat edukasi dan tidak menggantikan konsultasi, diagnosis, atau instruksi tenaga kesehatan. Isi perlu ditinjau dan disetujui tim klinis RSUP Dr. Sitanala sebelum digunakan dalam pelayanan pasien.</p><p>Jangan memasukkan nama, nomor rekam medis, atau informasi pribadi pasien ke halaman ini.</p><p>© 2026 PETA PARU</p></div></footer>
 </body></html>
